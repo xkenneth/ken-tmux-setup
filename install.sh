@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
+GITHUB_RAW="https://raw.githubusercontent.com/xkenneth/ken-tmux-setup/main"
 
 echo "Ken's tmux setup installer"
 echo "=========================="
@@ -45,34 +45,50 @@ install_oh_my_tmux() {
     if [ -d "$HOME/.oh-my-tmux" ]; then
         echo "Oh My Tmux already installed, updating..."
         cd "$HOME/.oh-my-tmux" && git pull
+        cd - >/dev/null
     else
         git clone https://github.com/gpakosz/.tmux.git "$HOME/.oh-my-tmux"
     fi
 
-    # Backup existing configs
-    if [ -f "$HOME/.tmux.conf" ] && [ ! -L "$HOME/.tmux.conf" ]; then
-        echo "Backing up existing .tmux.conf to .tmux.conf.backup"
-        mv "$HOME/.tmux.conf" "$HOME/.tmux.conf.backup.$(date +%s)"
-    fi
+    # Symlink oh-my-tmux base config
+    ln -sf "$HOME/.oh-my-tmux/.tmux.conf" "$HOME/.tmux.conf"
+    echo "Symlinked Oh My Tmux config"
+}
+
+# Download and install config files
+install_configs() {
+    echo "Downloading config files..."
+
+    # Backup existing .tmux.conf.local if it's a real file (not symlink)
     if [ -f "$HOME/.tmux.conf.local" ] && [ ! -L "$HOME/.tmux.conf.local" ]; then
-        echo "Backing up existing .tmux.conf.local to .tmux.conf.local.backup"
+        echo "Backing up existing .tmux.conf.local"
         mv "$HOME/.tmux.conf.local" "$HOME/.tmux.conf.local.backup.$(date +%s)"
     fi
 
-    # Create symlinks
-    ln -sf "$HOME/.oh-my-tmux/.tmux.conf" "$HOME/.tmux.conf"
-    ln -sf "$REPO_DIR/.tmux.conf.local" "$HOME/.tmux.conf.local"
-    echo "Symlinked tmux configs"
+    # Remove symlink if exists
+    [ -L "$HOME/.tmux.conf.local" ] && rm "$HOME/.tmux.conf.local"
+
+    # Download .tmux.conf.local
+    curl -fsSL "$GITHUB_RAW/.tmux.conf.local" -o "$HOME/.tmux.conf.local"
+    echo "Installed .tmux.conf.local"
 }
 
 # Install helper scripts
 install_scripts() {
     echo "Installing helper scripts..."
     mkdir -p "$HOME/.local/bin"
-    ln -sf "$REPO_DIR/tmux-dev.sh" "$HOME/.local/bin/tmux-dev"
-    chmod +x "$REPO_DIR/tmux-dev.sh"
+
+    # Download tmux-dev.sh
+    curl -fsSL "$GITHUB_RAW/tmux-dev.sh" -o "$HOME/.local/bin/tmux-dev"
+    chmod +x "$HOME/.local/bin/tmux-dev"
     echo "Installed tmux-dev to ~/.local/bin/tmux-dev"
-    echo "Make sure ~/.local/bin is in your PATH"
+
+    # Check if ~/.local/bin is in PATH
+    if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+        echo ""
+        echo "NOTE: Add ~/.local/bin to your PATH:"
+        echo "  echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.bashrc"
+    fi
 }
 
 # Main
@@ -83,6 +99,7 @@ else
 fi
 
 install_oh_my_tmux
+install_configs
 install_scripts
 
 echo ""
