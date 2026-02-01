@@ -68,8 +68,8 @@ install_configs() {
     # Remove symlink if exists
     [ -L "$HOME/.tmux.conf.local" ] && rm "$HOME/.tmux.conf.local"
 
-    # Download .tmux.conf.local (cache bust to avoid stale CDN)
-    curl -fsSL "$GITHUB_RAW/.tmux.conf.local?v=$(date +%s)" -o "$HOME/.tmux.conf.local"
+    # Download .tmux.conf.local (bypass CDN cache)
+    curl -fsSL -H 'Cache-Control: no-cache' "$GITHUB_RAW/.tmux.conf.local" -o "$HOME/.tmux.conf.local"
     echo "Installed .tmux.conf.local"
 }
 
@@ -78,8 +78,8 @@ install_scripts() {
     echo "Installing helper scripts..."
     mkdir -p "$HOME/.local/bin"
 
-    # Download tmux-dev.sh (cache bust to avoid stale CDN)
-    curl -fsSL "$GITHUB_RAW/tmux-dev.sh?v=$(date +%s)" -o "$HOME/.local/bin/tmux-dev"
+    # Download tmux-dev.sh (bypass CDN cache)
+    curl -fsSL -H 'Cache-Control: no-cache' "$GITHUB_RAW/tmux-dev.sh" -o "$HOME/.local/bin/tmux-dev"
     chmod +x "$HOME/.local/bin/tmux-dev"
     echo "Installed tmux-dev to ~/.local/bin/tmux-dev"
 
