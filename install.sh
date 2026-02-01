@@ -73,6 +73,40 @@ install_configs() {
     echo "Installed .tmux.conf.local"
 }
 
+# Add ~/.local/bin to PATH in shell config
+add_to_path() {
+    local shell_rc=""
+    local path_line='export PATH="$HOME/.local/bin:$PATH"'
+
+    # Determine shell config file
+    if [ -n "$ZSH_VERSION" ] || [ "$SHELL" = "/bin/zsh" ] || [ "$SHELL" = "/usr/bin/zsh" ]; then
+        shell_rc="$HOME/.zshrc"
+    elif [ -n "$BASH_VERSION" ] || [ "$SHELL" = "/bin/bash" ] || [ "$SHELL" = "/usr/bin/bash" ]; then
+        shell_rc="$HOME/.bashrc"
+    fi
+
+    # Also check for .bash_profile on macOS
+    if [ "$OS_TYPE" = "macos" ] && [ -f "$HOME/.bash_profile" ] && [ ! -f "$HOME/.bashrc" ]; then
+        shell_rc="$HOME/.bash_profile"
+    fi
+
+    if [ -z "$shell_rc" ]; then
+        echo "Could not detect shell config file. Add this to your shell config manually:"
+        echo "  $path_line"
+        return
+    fi
+
+    # Check if already in config
+    if grep -q '\.local/bin' "$shell_rc" 2>/dev/null; then
+        echo "~/.local/bin already in $shell_rc"
+    else
+        echo "" >> "$shell_rc"
+        echo "# Added by ken-tmux-setup" >> "$shell_rc"
+        echo "$path_line" >> "$shell_rc"
+        echo "Added ~/.local/bin to PATH in $shell_rc"
+    fi
+}
+
 # Install helper scripts
 install_scripts() {
     echo "Installing helper scripts..."
@@ -83,11 +117,9 @@ install_scripts() {
     chmod +x "$HOME/.local/bin/tmux-dev"
     echo "Installed tmux-dev to ~/.local/bin/tmux-dev"
 
-    # Check if ~/.local/bin is in PATH
+    # Add to PATH if not already there
     if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
-        echo ""
-        echo "NOTE: Add ~/.local/bin to your PATH:"
-        echo "  echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.bashrc"
+        add_to_path
     fi
 }
 
@@ -109,7 +141,6 @@ echo "Features enabled:"
 echo "  - Mouse support (on by default)"
 echo "  - Vi mode for copy/paste"
 echo "  - Pane titles displayed"
-echo "  - Session persistence (tmux-resurrect + continuum)"
 echo "  - System clipboard integration"
 echo ""
 echo "Usage:"
